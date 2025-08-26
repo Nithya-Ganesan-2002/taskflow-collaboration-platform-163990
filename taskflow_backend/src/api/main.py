@@ -1,16 +1,70 @@
+from typing import List
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from src.core.config import get_settings
+from src.core.errors import http_error_handler, validation_exception_handler
+from src.core.middleware import LoggingMiddleware
+from src.db.init_db import init_db
+from src.db.session import get_engine
+from src.routes import get_api_router
 
+settings = get_settings()
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description=settings.APP_DESCRIPTION,
+    version=settings.APP_VERSION,
+    contact={"name": "TaskFlow", "url": "https://example.com"},
+    license_info={"name": "Proprietary"},
+    openapi_tags=[
+        {"name": "Health", "description": "Basic health endpoints"},
+        {"name": "WebSockets", "description": "Real-time communication endpoints"},
+    ],
+)
+
+# CORS per request details (allow localhost:3000)
+cors_allow_origins: List[str] = (
+    settings.BACKEND_CORS_ORIGINS
+    if isinstance(settings.BACKEND_CORS_ORIGINS, list)
+    else [str(settings.BACKEND_CORS_ORIGINS)]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def health_check():
-    return {"message": "Healthy"}
+# Logger middleware
+app.add_middleware(LoggingMiddleware)
+
+# Exception handlers
+app.add_exception_handler(Exception, http_error_handler)
+app.add_exception_handler(Exception, http_error_handler)
+from fastapi.exceptions import RequestValidationError  # local import to avoid unused if not needed
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+# Routers
+app.include_router(get_api_router())
+
+
+@app.on_event("startup")
+async def on_startup():
+    """Initialize resources on application startup."""
+    # Initialize DB (create tables for SQLite default)
+    await init_db(get_engine())
+
+
+@app.get(
+    "/websocket-docs",
+    summary="WebSocket usage",
+    description="Placeholder for WebSocket usage notes. Future endpoints will be documented here.",
+    tags=["WebSockets"],
+)
+def websocket_docs():
+    return {
+        "detail": "WebSocket endpoints will be available in future iterations. Connect via ws(s)://<host>/ws for real-time updates."
+    }
