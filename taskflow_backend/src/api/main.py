@@ -20,6 +20,7 @@ app = FastAPI(
     license_info={"name": "Proprietary"},
     openapi_tags=[
         {"name": "Health", "description": "Basic health endpoints"},
+        {"name": "Authentication", "description": "User signup, login, and token management"},
         {"name": "WebSockets", "description": "Real-time communication endpoints"},
     ],
 )

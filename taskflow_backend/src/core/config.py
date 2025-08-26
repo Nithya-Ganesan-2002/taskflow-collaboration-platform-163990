@@ -32,9 +32,11 @@ class Settings(BaseSettings):
         description="SQLAlchemy database URL",
     )
 
-    # Security (placeholders for future auth work)
-    SECRET_KEY: str = Field(default="CHANGE_ME", description="Secret key for signing")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60 * 24, description="JWT expiration in minutes")
+    # Security / Auth
+    SECRET_KEY: str = Field(default="CHANGE_ME", description="Secret key for signing JWTs")
+    JWT_ALGORITHM: str = Field(default="HS256", description="JWT signing algorithm")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60, description="Access token expiration in minutes")
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = Field(default=60 * 24 * 7, description="Refresh token expiration in minutes")
 
     class Config:
         env_file = ".env"

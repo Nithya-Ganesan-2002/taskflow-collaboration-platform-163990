@@ -45,3 +45,6 @@ SQLAlchemy==2.0.36
 aiosqlite==0.20.0
 # Optional driver for Postgres when switching DATABASE_URL to postgresql+asyncpg
 asyncpg==0.30.0
+# Auth dependencies
+python-jose==3.3.0
+passlib[bcrypt]==1.7.4
