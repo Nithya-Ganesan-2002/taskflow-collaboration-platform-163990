@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.activity import Activity, ActivityScope, ActivityType
 from src.models.project import Project, ProjectMember
 from src.models.task import Task
+from src.websockets.manager import manager
 
 
 async def _ensure_project_member(db: AsyncSession, project_id: int, user_id: int) -> Project:
@@ -40,7 +41,7 @@ async def record_activity(
     message: str,
     task_id: Optional[int] = None,
 ) -> Activity:
-    """Record an activity event for a project (and optional task)."""
+    """Record an activity event for a project (and optional task) and broadcast to WebSocket listeners."""
     scope = ActivityScope.TASK.value if task_id is not None else ActivityScope.PROJECT.value
     event = Activity(
         project_id=project_id,
@@ -53,6 +54,23 @@ async def record_activity(
     db.add(event)
     await db.commit()
     await db.refresh(event)
+
+    # Broadcast to project room and task room if applicable
+    payload = {
+        "channel": "activity",
+        "project_id": project_id,
+        "task_id": task_id,
+        "actor_id": actor_id,
+        "scope": scope,
+        "type": type,
+        "message": message,
+        "id": event.id,
+        "created_at": event.created_at,
+    }
+    await manager.broadcast_project(project_id, payload)
+    if task_id is not None:
+        await manager.broadcast_task(task_id, payload)
+
     return event
 
 

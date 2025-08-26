@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.project import ProjectMember, Project
 from src.models.task import Task
 from src.services.activity import record_activity, ActivityTypeEnum
+from src.websockets.manager import manager
 
 
 async def _ensure_project_member(db: AsyncSession, project_id: int, user_id: int) -> Project:
@@ -87,6 +88,28 @@ async def create_task(
         message=f"Task #{task.id} created: {title}",
         task_id=task.id,
     )
+    # Broadcast a snapshot for immediate UI updates
+    await manager.broadcast_project(project_id, {
+        "channel": "task",
+        "event": "created",
+        "task": {
+            "id": task.id,
+            "project_id": task.project_id,
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "due_date": task.due_date,
+            "assignee_id": task.assignee_id,
+            "created_by_id": task.created_by_id,
+            "is_archived": task.is_archived,
+        }
+    })
+    await manager.broadcast_task(task.id, {
+        "channel": "task",
+        "event": "created",
+        "task_id": task.id,
+    })
     return task
 
 
@@ -123,6 +146,27 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, user_id: 
         message=f"Task #{task.id} updated",
         task_id=task.id,
     )
+    await manager.broadcast_project(project_id, {
+        "channel": "task",
+        "event": "updated",
+        "task": {
+            "id": task.id,
+            "project_id": task.project_id,
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "due_date": task.due_date,
+            "assignee_id": task.assignee_id,
+            "created_by_id": task.created_by_id,
+            "is_archived": task.is_archived,
+        }
+    })
+    await manager.broadcast_task(task.id, {
+        "channel": "task",
+        "event": "updated",
+        "task_id": task.id,
+    })
     return task
 
 
@@ -170,3 +214,13 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, user_id: 
         message=f"Task #{task_id} deleted",
         task_id=task_id,
     )
+    await manager.broadcast_project(project_id, {
+        "channel": "task",
+        "event": "deleted",
+        "task_id": task_id,
+    })
+    await manager.broadcast_task(task_id, {
+        "channel": "task",
+        "event": "deleted",
+        "task_id": task_id,
+    })

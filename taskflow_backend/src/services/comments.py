@@ -10,6 +10,7 @@ from src.models.comment import Comment
 from src.models.project import Project, ProjectMember
 from src.models.task import Task
 from src.services.activity import record_activity, ActivityTypeEnum
+from src.websockets.manager import manager
 
 
 async def _ensure_member_and_task(db: AsyncSession, project_id: int, task_id: int, user_id: int) -> Task:
@@ -62,6 +63,25 @@ async def create_comment(db: AsyncSession, project_id: int, task_id: int, user_i
         message=f"Comment added to task #{task_id}",
         task_id=task_id,
     )
+    await manager.broadcast_project(project_id, {
+        "channel": "comment",
+        "event": "created",
+        "project_id": project_id,
+        "task_id": task_id,
+        "comment": {
+            "id": c.id,
+            "author_id": c.author_id,
+            "body": c.body,
+            "created_at": c.created_at,
+            "updated_at": c.updated_at,
+        }
+    })
+    await manager.broadcast_task(task_id, {
+        "channel": "comment",
+        "event": "created",
+        "task_id": task_id,
+        "comment_id": c.id,
+    })
     return c
 
 
@@ -94,6 +114,25 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
         message=f"Comment #{comment_id} updated on task #{task_id}",
         task_id=task_id,
     )
+    await manager.broadcast_project(project_id, {
+        "channel": "comment",
+        "event": "updated",
+        "project_id": project_id,
+        "task_id": task_id,
+        "comment": {
+            "id": comment.id,
+            "author_id": comment.author_id,
+            "body": comment.body,
+            "created_at": comment.created_at,
+            "updated_at": comment.updated_at,
+        }
+    })
+    await manager.broadcast_task(task_id, {
+        "channel": "comment",
+        "event": "updated",
+        "task_id": task_id,
+        "comment_id": comment.id,
+    })
     return comment
 
 
@@ -129,3 +168,16 @@ async def delete_comment(db: AsyncSession, project_id: int, task_id: int, commen
         message=f"Comment #{comment_id} deleted from task #{task_id}",
         task_id=task_id,
     )
+    await manager.broadcast_project(project_id, {
+        "channel": "comment",
+        "event": "deleted",
+        "project_id": project_id,
+        "task_id": task_id,
+        "comment_id": comment_id,
+    })
+    await manager.broadcast_task(task_id, {
+        "channel": "comment",
+        "event": "deleted",
+        "task_id": task_id,
+        "comment_id": comment_id,
+    })

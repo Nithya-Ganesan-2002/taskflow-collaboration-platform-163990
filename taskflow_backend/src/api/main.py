@@ -9,6 +9,7 @@ from src.core.middleware import LoggingMiddleware
 from src.db.init_db import init_db
 from src.db.session import get_engine
 from src.routes import get_api_router
+from src.routes.websockets import router as ws_router
 
 settings = get_settings()
 
@@ -54,22 +55,11 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Routers
 app.include_router(get_api_router())
-
+# WebSocket and usage help endpoints
+app.include_router(ws_router)
 
 @app.on_event("startup")
 async def on_startup():
     """Initialize resources on application startup."""
     # Initialize DB (create tables for SQLite default)
     await init_db(get_engine())
-
-
-@app.get(
-    "/websocket-docs",
-    summary="WebSocket usage",
-    description="Placeholder for WebSocket usage notes. Future endpoints will be documented here.",
-    tags=["WebSockets"],
-)
-def websocket_docs():
-    return {
-        "detail": "WebSocket endpoints will be available in future iterations. Connect via ws(s)://<host>/ws for real-time updates."
-    }
