@@ -24,6 +24,8 @@ app = FastAPI(
         {"name": "Projects", "description": "Project management: CRUD and team membership"},
         {"name": "Tasks", "description": "Task management within projects: CRUD, status, assignment"},
         {"name": "WebSockets", "description": "Real-time communication endpoints"},
+        {"name": "Comments", "description": "Task comments APIs"},
+        {"name": "Activity", "description": "Project and task activity feed"},
     ],
 )
 

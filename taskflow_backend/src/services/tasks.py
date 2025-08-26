@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.project import ProjectMember, Project
 from src.models.task import Task
+from src.services.activity import record_activity, ActivityTypeEnum
 
 
 async def _ensure_project_member(db: AsyncSession, project_id: int, user_id: int) -> Project:
@@ -76,6 +77,16 @@ async def create_task(
     db.add(task)
     await db.commit()
     await db.refresh(task)
+
+    # Record activity
+    await record_activity(
+        db,
+        project_id=project_id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.TASK_CREATED.value,
+        message=f"Task #{task.id} created: {title}",
+        task_id=task.id,
+    )
     return task
 
 
@@ -102,19 +113,47 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, user_id: 
         setattr(task, k, v)
     await db.commit()
     await db.refresh(task)
+
+    # Record generic update
+    await record_activity(
+        db,
+        project_id=project_id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.TASK_UPDATED.value,
+        message=f"Task #{task.id} updated",
+        task_id=task.id,
+    )
     return task
 
 
 # PUBLIC_INTERFACE
 async def change_status(db: AsyncSession, project_id: int, task_id: int, user_id: int, status_value: str) -> Task:
     """Change the status of a task."""
-    return await update_task(db, project_id, task_id, user_id, {"status": status_value})
+    task = await update_task(db, project_id, task_id, user_id, {"status": status_value})
+    await record_activity(
+        db,
+        project_id=project_id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.TASK_STATUS_CHANGED.value,
+        message=f"Task #{task.id} status changed to {status_value}",
+        task_id=task.id,
+    )
+    return task
 
 
 # PUBLIC_INTERFACE
 async def assign_task(db: AsyncSession, project_id: int, task_id: int, user_id: int, assignee_id: int | None) -> Task:
     """Assign a task to a member (or unassign with None)."""
-    return await update_task(db, project_id, task_id, user_id, {"assignee_id": assignee_id})
+    task = await update_task(db, project_id, task_id, user_id, {"assignee_id": assignee_id})
+    await record_activity(
+        db,
+        project_id=project_id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.TASK_ASSIGNEE_CHANGED.value,
+        message=f"Task #{task.id} assignee changed to {assignee_id if assignee_id is not None else 'none'}",
+        task_id=task.id,
+    )
+    return task
 
 
 # PUBLIC_INTERFACE
@@ -123,3 +162,11 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, user_id: 
     await _ensure_project_member(db, project_id, user_id)
     await db.execute(delete(Task).where(and_(Task.id == task_id, Task.project_id == project_id)))
     await db.commit()
+    await record_activity(
+        db,
+        project_id=project_id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.TASK_DELETED.value,
+        message=f"Task #{task_id} deleted",
+        task_id=task_id,
+    )

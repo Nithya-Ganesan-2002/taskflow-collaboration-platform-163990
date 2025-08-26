@@ -22,3 +22,10 @@ from .task import (  # noqa: F401
     TaskUpdate,
     TaskOut,
 )
+from .comment import (  # noqa: F401
+    CommentBase,
+    CommentCreate,
+    CommentUpdate,
+    CommentOut,
+)
+from .activity import ActivityOut  # noqa: F401

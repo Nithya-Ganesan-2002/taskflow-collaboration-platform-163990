@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.project import Project, ProjectMember, ProjectMemberRole
 from src.models.user import User
+from src.services.activity import record_activity, ActivityTypeEnum
 
 
 async def _ensure_project_access(db: AsyncSession, project_id: int, user_id: int) -> Project:
@@ -42,6 +43,13 @@ async def create_project(db: AsyncSession, owner: User, name: str, description: 
 
     await db.commit()
     await db.refresh(project)
+    await record_activity(
+        db,
+        project_id=project.id,
+        actor_id=owner.id,
+        type=ActivityTypeEnum.PROJECT_CREATED.value,
+        message=f"Project created: {name}",
+    )
     return project
 
 
@@ -86,6 +94,13 @@ async def update_project(db: AsyncSession, project_id: int, user_id: int, update
 
     await db.commit()
     await db.refresh(project)
+    await record_activity(
+        db,
+        project_id=project.id,
+        actor_id=user_id,
+        type=ActivityTypeEnum.PROJECT_UPDATED.value,
+        message=f"Project #{project.id} updated",
+    )
     return project
 
 
@@ -131,6 +146,13 @@ async def add_or_update_member(db: AsyncSession, project_id: int, actor_id: int,
         db.add(member)
 
     await db.commit()
+    await record_activity(
+        db,
+        project_id=project.id,
+        actor_id=actor_id,
+        type=ActivityTypeEnum.PROJECT_MEMBER_ADDED.value,
+        message=f"Member {target_user_id} set role {role}",
+    )
     return member
 
 
