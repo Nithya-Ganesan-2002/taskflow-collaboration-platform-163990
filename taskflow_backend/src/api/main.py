@@ -21,6 +21,8 @@ app = FastAPI(
     openapi_tags=[
         {"name": "Health", "description": "Basic health endpoints"},
         {"name": "Authentication", "description": "User signup, login, and token management"},
+        {"name": "Projects", "description": "Project management: CRUD and team membership"},
+        {"name": "Tasks", "description": "Task management within projects: CRUD, status, assignment"},
         {"name": "WebSockets", "description": "Real-time communication endpoints"},
     ],
 )

@@ -7,3 +7,18 @@ from .auth import (  # noqa: F401
     UserLogin,
     UserOut,
 )
+from .project import (  # noqa: F401
+    ProjectBase,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectOut,
+    ProjectWithMembers,
+    ProjectMemberAdd,
+    ProjectMemberOut,
+)
+from .task import (  # noqa: F401
+    TaskBase,
+    TaskCreate,
+    TaskUpdate,
+    TaskOut,
+)
